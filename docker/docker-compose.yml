@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  zookeeper_ml:
+    image: bitnami/zookeeper:3
+    container_name: zookeeper_ml
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - kafka_spark_net_ml
+
+  kafka_ml:
+    image: bitnami/kafka:latest
+    container_name: kafka_ml
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://:9094
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    networks:
+      - kafka_spark_net_ml
+
+  spark:
+    image: bitnami/spark:latest
+    container_name: spark_ml
+    ports:
+      - "8080:8080"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_PORT=8080
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_LOCAL_IP=127.0.0.1
+    depends_on:
+      - kafka_ml
+    networks:
+      - kafka_spark_net_ml
+
+networks:
+  kafka_spark_net:
+    driver: bridge
